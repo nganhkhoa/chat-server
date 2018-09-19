@@ -40,10 +40,22 @@ public class MapDB extends DatabaseProvider {
     }
 
     public boolean signIn(String username, String password) {
-        return true;
+        byte[] b = accounts.get(username);
+        if (b == null)
+            return false;
+        Account account = (Account) SerializationUtils.deserialize(b);
+        if (account.getPassword().equals(password))
+            return true;
+        return false;
     }
 
-    public String signUp(String name) {
-        return "Random Password";
+    public void addUser(Account account) {
+        accounts.put(account.getUsername(), SerializationUtils.serialize(account));
+        db.commit();
+    }
+
+    public boolean existUser(String username) {
+        // System.out.println(accounts.get(username));
+        return accounts.get(username) != null;
     }
 }

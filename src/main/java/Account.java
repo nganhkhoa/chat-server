@@ -4,8 +4,8 @@ import java.io.*;
 class Account implements Serializable {
     static final long serialVersionUID = -6540111480558873206L;
 
-    String name;
-    String password;
+    private final String name;
+    private String password;
 
     public Account(String name) {
         this.name = name;
@@ -16,12 +16,16 @@ class Account implements Serializable {
         this.password = password;
     }
 
-    public String getName() {
+    public final String getUsername() {
         return this.name;
     }
 
+    public final String getPassword() {
+        return this.password;
+    }
+
     static String randomPassword() {
-        return "Random";
+        return "Random_laksdfjalsdkfjlskdjf";
     }
 
     //     public static byte[] serialize(Account obj) throws IOException {

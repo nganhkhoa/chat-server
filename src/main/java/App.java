@@ -5,6 +5,13 @@ import java.io.*;
 public class App {
     public static int PORT = 7789;
     public static void main(String[] args) {
+        // add interupt event
+        // Runtime.getRuntime().addShutdownHook(new Thread() {
+        //     public void run() {
+        //         System.out.println("Exited!");
+        //     }
+        // });
+
         ServerSocket serverSocket = null;
         Socket socket = null;
         DataInputStream dis = null;

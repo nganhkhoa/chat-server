@@ -5,5 +5,7 @@ public abstract class DatabaseProvider {
     protected abstract Object getRoomDatabase();
 
     public abstract boolean signIn(String name, String password);
-    public abstract String signUp(String name);
+    public abstract void addUser(Account account);
+
+    public abstract boolean existUser(String name);
 }
