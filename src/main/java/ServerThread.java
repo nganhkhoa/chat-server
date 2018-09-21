@@ -9,17 +9,12 @@ public class ServerThread extends Thread {
 
     final private DatabaseProvider dp;
 
-    public ServerThread(Socket socket, DataInputStream dis, DataOutputStream dos) {
+    public ServerThread(
+        Socket socket, DataInputStream dis, DataOutputStream dos, DatabaseProvider dp) {
         this.socket = socket;
         this.dis = dis;
         this.dos = dos;
-        dp = new MapDB();
-
-        try {
-            dp.connect();
-        } catch (Exception ex) {
-            System.out.println("Cannot connect to database");
-        }
+        this.dp = dp;
     }
 
     @Override
@@ -163,7 +158,6 @@ public class ServerThread extends Thread {
         } catch (IOException ex) {
             // pass
         }
-        dp.close();
     }
 }
 

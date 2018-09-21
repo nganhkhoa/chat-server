@@ -19,16 +19,27 @@ public class App {
 
         try {
             serverSocket = new ServerSocket(PORT);
+            System.out.println("Server is running on Port: " + PORT);
         } catch (IOException ex) {
             // pass
         }
 
+        // global database povider
+        // Say no to Singleton
+        // pass along the way
+        DatabaseProvider dp = new MapDB();
+        try {
+            dp.connect();
+
+        } catch (Exception ex) {
+            // pass
+        }
         while (true) {
             try {
                 socket = serverSocket.accept();
                 dis = new DataInputStream(socket.getInputStream());
                 dos = new DataOutputStream(socket.getOutputStream());
-                Thread t = new ServerThread(socket, dis, dos);
+                Thread t = new ServerThread(socket, dis, dos, dp);
                 t.start();
             } catch (Exception ex) {
                 // pass
