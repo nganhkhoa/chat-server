@@ -2,12 +2,24 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+// json provider
+import org.json.*;
+import com.google.gson.*;
+import com.google.gson.reflect.*;
+
 public class ServerThread extends Thread {
     final Socket socket;
     final DataInputStream dis;
     final DataOutputStream dos;
 
     final private DatabaseProvider dp;
+
+    boolean isLoggedIn = false;
+    String username;
+    String IP;
+
+    QueryType qt = null;
+    Map<String, Object> param = null;
 
     public ServerThread(
         Socket socket, DataInputStream dis, DataOutputStream dos, DatabaseProvider dp) {
@@ -19,137 +31,128 @@ public class ServerThread extends Thread {
 
     @Override
     public void run() {
-        String received;
-        String toreturn;
-
         // 1. verifies username and password
         // 2. disconnect on failure
         // 3. wait for room selection
         // 4. connect client to room
         // 5. disconnect from server
 
-        menu();
+        String[] result = null;
+        while (true) {
+            receive_msg();
+            result = get_result();
+            return_result(result);
+
+            if (qt == QueryType.EXIT)
+                break;
+        }
         exit();
     }
 
-    protected void menu() {
-        Formater formater = (boolean isSignedIn) -> {
-            // List<String> menu_items = new ArrayList<String>();
-            Map<Integer, String> menu_items = new TreeMap<Integer, String>();
-            int menutype;
-            if (isSignedIn) {
-                menutype = 2;
-            } else {
-                menutype = 1;
-            }
+    protected void receive_msg() {
+        try {
+            byte[] encoded_msg = dis.readUTF().getBytes();
+            String json_msg = new String(Base64.getDecoder().decode(encoded_msg));
 
-            String format = "Choose an option\n";
+            System.out.println(json_msg);
 
-            for (MenuEnum me : MenuEnum.values()) {
-                if (me.type() != menutype)
-                    continue;
-                menu_items.put(me.value(), me.string());
-            }
+            // using org.json?
+            // JSONObject jo = new JSONObject(json_msg);
+            // System.out.println(jo.toString(4));
 
-            Set set = menu_items.entrySet();
-            Iterator iter = set.iterator();
-            int counter = 1;
-            while (iter.hasNext()) {
-                Map.Entry entry = (Map.Entry) iter.next();
-                format += entry.getKey() + ". " + entry.getValue() + "\n";
-                counter++;
-            }
+            // using gson?
+            // System.out.println(json_msg);
+            Gson g = new Gson();
+            Map<String, Object> map_msg =
+                g.fromJson(json_msg, new TypeToken<Map<String, Object>>() {}.getType());
 
-            format += counter + ". exit\n";
+            String task = (String) map_msg.get("task");
+            if (task.equals("signin"))
+                qt = QueryType.SIGNIN;
+            else if (task.equals("signout"))
+                qt = QueryType.SIGNOUT;
+            else if (task.equals("signup"))
+                qt = QueryType.SIGNUP;
+            else if (task.equals("chooseroom"))
+                qt = QueryType.CHOOSEROOM;
+            else if (task.equals("exit"))
+                qt = QueryType.EXIT;
+            else
+                qt = QueryType.UNKNOWN;
 
-            format += "> ";
+            // param is {} so it is ok to work like this
+            @SuppressWarnings("unchecked")
+            Map<String, Object> p = (Map<String, Object>) map_msg.get("param");
+            param = p;
 
-            return format;
-        };
+        } catch (IOException ex) {
+            // pass
+        } catch (IllegalArgumentException ex) {
+            qt = QueryType.UNKNOWN;
+        }
+    }
 
-        boolean isSignedIn = false;
-        boolean exit = false;
-        String format = formater.format(isSignedIn);
-        while (!exit) {
-            try {
-                dos.writeUTF(format);
-                int option = Integer.parseInt(dis.readUTF());
-
-                if (isSignedIn) {
-                    switch (MenuEnum.get(2, option)) {
-                        case CHOOSEROOM:
-                            chooseroom();
-                            break;
-                        default:
-                            exit = true;
-                            break;
-                    }
+    protected String[] get_result() {
+        int status_code = -1;
+        String msg = "Unknown request";
+        switch (qt) {
+            case SIGNIN:
+                String username = (String) param.get("username");
+                String password = (String) param.get("password");
+                isLoggedIn = signin(username, password);
+                if (isLoggedIn) {
+                    status_code = 200;
+                    msg = "Logged in successfully";
                 } else {
-                    switch (MenuEnum.get(1, option)) {
-                        case SIGNIN:
-                            isSignedIn = signin();
-                            format = formater.format(isSignedIn);
-                            break;
-                        case SIGNUP:
-                            signup();
-                            break;
-                        default:
-                            exit = true;
-                            break;
-                    }
+                    status_code = 403;
+                    msg = "Wrong credentials";
                 }
-            } catch (IOException ex) {
-                // client or host dis-connected?
                 break;
-            } catch (NumberFormatException ex) {
-                // re-enter please
-                continue;
-            }
+            case EXIT:
+                status_code = 0;
+                msg = "EXIT";
+                break;
+
+            default:
+                break;
         }
+
+        String[] result = {Integer.toString(status_code), msg};
+        return result;
     }
-    protected boolean signin() {
+
+    protected void return_result(String[] result) {
         try {
-            dos.writeUTF("Username: ");
-            String username = dis.readUTF();
-            dos.writeUTF("Password: ");
-            String password = dis.readUTF();
+            String tosend = "{\"status\":" + result[0] + ",\"msg\":\"" + result[1] + "\"}";
 
-            if (!dp.signIn(username, password)) {
-                dos.writeUTF("Username or Password incorrect\n");
-                return false;
-            } else {
-                dos.writeUTF("Successfully signed in as " + username + "\n");
-                return true;
-            }
-
+            byte[] encoded_msg = Base64.getEncoder().encode(tosend.getBytes());
+            tosend = new String(encoded_msg);
+            dos.writeUTF(tosend);
         } catch (IOException ex) {
             // pass
         }
-        return false;
     }
-    protected void signup() {
-        try {
-            dos.writeUTF("Username: ");
-            String username = dis.readUTF();
 
-            Account newAccount = new Account(username);
-            String password = newAccount.getPassword();
-
-            if (dp.existUser(username)) {
-                dos.writeUTF("Username is already taken\n");
-                return;
-            }
-
-            dp.addUser(newAccount);
-            dos.writeUTF(
-                "Successfully signed up as " + username + " with password: \"" + password + "\"\n");
-        } catch (IOException ex) {
-            // pass
-        } catch (Exception ex) {
-            // dos.writeUTF("An error occured while register a new user\n");
+    protected boolean signin(String username, String password) {
+        if (username == null || password == null)
+            return false;
+        if (!dp.signIn(username, password)) {
+            return false;
+        } else {
+            return true;
         }
     }
-    protected void chooseroom() {}
+
+    // return password
+    protected String signup(String username) {
+        return "random";
+    }
+
+    // list of IP Address
+    protected List<String> chooseroom(int room) {
+        return null;
+    }
+
     protected void exit() {
         try {
             socket.close();
@@ -161,51 +164,4 @@ public class ServerThread extends Thread {
     }
 }
 
-@FunctionalInterface
-interface Formater {
-    String format(boolean isSignedIn);
-}
-
-enum MenuEnum {
-    // normal menu -- 1
-    SIGNIN(1, 1),
-    SIGNUP(1, 2),
-
-    // menu for logged in user -- 2
-    CHOOSEROOM(2, 1),
-
-    ERROR(99, 99);
-
-    private final int menutype;
-    private final int menuitem;
-
-    private static final String[][] menuitems = {{"Sign in", "Sign up"}, {"Choose room"}};
-
-    MenuEnum(int menutype, int menuitem) {
-        this.menutype = menutype;
-        this.menuitem = menuitem;
-    }
-
-    public static final int limit(int menutype) {
-        return menuitems[menutype - 1].length;
-    }
-
-    public int type() {
-        return menutype;
-    }
-
-    public final int value() {
-        return menuitem;
-    }
-
-    public final String string() {
-        return menuitems[menutype - 1][menuitem - 1];
-    }
-
-    public static MenuEnum get(int menutype, int menuitem) {
-        for (final MenuEnum me : EnumSet.allOf(MenuEnum.class))
-            if (me.menutype == menutype && me.menuitem == menuitem)
-                return me;
-        return ERROR;
-    }
-}
+enum QueryType { SIGNIN, SIGNUP, SIGNOUT, CHOOSEROOM, EXIT, UNKNOWN }

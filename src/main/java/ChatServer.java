@@ -2,7 +2,7 @@ import java.lang.*;
 import java.net.*;
 import java.io.*;
 
-public class App {
+public class ChatServer {
     public static int PORT = 7789;
     public static void main(String[] args) {
         // add interupt event

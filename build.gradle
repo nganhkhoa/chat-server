@@ -15,7 +15,7 @@ plugins {
 }
 
 // Define the main class for the application
-mainClassName = 'App'
+mainClassName = 'ChatServer'
 
 dependencies {
     // This dependency is found on compile classpath of this component and consumers.
@@ -27,6 +27,13 @@ dependencies {
     compile "org.mapdb:mapdb:3.0.7"
     // serializer
     compile "commons-lang:commons-lang:2.6"
+
+    // json parser
+    compile "com.eclipsesource.minimal-json:minimal-json:0.9.4"
+
+    compile 'com.google.code.gson:gson:2.8.5'
+
+    compile 'org.json:json:20180813'
 
     // Use JUnit test framework
     testCompile 'junit:junit:4.12'
