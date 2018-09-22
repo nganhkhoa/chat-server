@@ -81,7 +81,11 @@ The code for the server lies at `src/main/java/`, the class for main is `ChatSer
 
 Because we need a client to test, a simple `ChatClient` is put at `Client/`. Because java built-ins does not support json, we use Gson to do the work. To run the chat client, make sure to compile with Gson, and run with Gson.
 
+Get Gson at [Maven](https://mvnrepository.com/artifact/com.google.code.gson/gson/2.8.5). Download the jar file in this case it is `gson-2.8.5.jar`. Or this [link](http://central.maven.org/maven2/com/google/code/gson/gson/2.8.5/gson-2.8.5.jar) to download the jar file. Save it to `Client/gson-2.8.5.jar`.
+
 ```sh
+# if you prefer wget:
+# wget http://central.maven.org/maven2/com/google/code/gson/gson/2.8.5/gson-2.8.5.jar
 javac -cp .:gson-2.8.5.jar ChatClient.java
 java -cp .:gson-2.8.5.jar ChatClient
 ```
