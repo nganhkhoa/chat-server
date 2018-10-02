@@ -50,11 +50,12 @@ public class ServerThread extends Thread {
     }
 
     protected void receive_msg() {
+        String json_msg;
         try {
             byte[] encoded_msg = dis.readUTF().getBytes();
-            String json_msg = new String(Base64.getDecoder().decode(encoded_msg));
+            json_msg = new String(Base64.getDecoder().decode(encoded_msg));
 
-            System.out.println(json_msg);
+            System.out.println("QUERY::" + json_msg);
 
             // using org.json?
             // JSONObject jo = new JSONObject(json_msg);
@@ -63,9 +64,11 @@ public class ServerThread extends Thread {
             // using gson?
             // System.out.println(json_msg);
             Gson g = new Gson();
-            Map<String, Object> map_msg =
-                g.fromJson(json_msg, new TypeToken<Map<String, Object>>() {}.getType());
+            Map<String, Object> map_msg;
 
+            map_msg =
+                g.fromJson(json_msg, new TypeToken<Map<String, Object>>() {}.getType());
+            
             String task = (String) map_msg.get("task");
             if (task.equals("signin"))
                 qt = QueryType.SIGNIN;
@@ -89,16 +92,21 @@ public class ServerThread extends Thread {
             // pass
         } catch (IllegalArgumentException ex) {
             qt = QueryType.UNKNOWN;
+        } catch (JsonParseException ex) {
+            System.out.println("BAD_QUERY::"+json_msg);
+            qt = QueryType.UNKNOWN;
         }
     }
 
     protected String[] get_result() {
         int status_code = -1;
         String msg = "Unknown request";
+        String username = "";
+        String password = "";
         switch (qt) {
             case SIGNIN:
-                String username = (String) param.get("username");
-                String password = (String) param.get("password");
+                username = (String) param.get("username");
+                password = (String) param.get("password");
                 isLoggedIn = signin(username, password);
                 if (isLoggedIn) {
                     status_code = 200;
@@ -107,6 +115,12 @@ public class ServerThread extends Thread {
                     status_code = 403;
                     msg = "Wrong credentials";
                 }
+                break;
+            case SIGNUP:
+                username = (String) param.get("username");
+                signup(username);
+                status_code = 200;
+                msg = "Signup successfully";
                 break;
             case EXIT:
                 status_code = 0;
@@ -145,7 +159,14 @@ public class ServerThread extends Thread {
 
     // return password
     protected String signup(String username) {
-        return "random";
+        if (dp.existUser(username)) {
+            return null;
+        }
+        else {
+            Account new_account = new Account(username);
+            dp.addUser(new_account);
+            return new_account.getPassword();
+        }
     }
 
     // list of IP Address

@@ -32,7 +32,8 @@ public class ChatServer {
             dp.connect();
 
         } catch (Exception ex) {
-            // pass
+            System.out.println("Cannot connect to database");
+            return;
         }
         while (true) {
             try {
