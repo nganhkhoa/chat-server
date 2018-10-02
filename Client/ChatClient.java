@@ -94,7 +94,16 @@ public class ChatClient {
                     + "','password':'" + password + "'}}";
                 tosend = tosend.replace("'", "\"");
             }
-        } else {
+        } else if (task.equals("signup")) {
+            String param = signup();
+            if (param != null) {
+                String username = param;
+                tosend = "{'task':'" + task + "','param':{'username':'" + username
+                    + "'}}";
+                tosend = tosend.replace("'", "\"");
+            }
+        }
+         else {
             tosend = "{\"task\":\"exit\",\"param\":{}}";
         }
 
@@ -120,7 +129,14 @@ public class ChatClient {
         return param;
     }
 
-    protected void signup() {}
+    protected String signup() {
+        // username
+        System.out.print("Username: ");
+        String username = scn.nextLine();
+        if (username.equals(""))
+            return null;
+        return username;
+    }
 
     protected void chooseroom() {}
 }
