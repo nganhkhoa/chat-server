@@ -15,6 +15,8 @@ public class ChatClient {
     private InetAddress ip;
     private Scanner scn;
 
+    private Gson gson = new Gson();
+
     public ChatClient() throws IOException {
         try {
             scn = new Scanner(System.in);
@@ -37,7 +39,6 @@ public class ChatClient {
 
     public void run() {
         String tosend = "";
-        String msg = "";
         try {
             while (true) {
                 tosend = build_request();
@@ -46,15 +47,20 @@ public class ChatClient {
                 byte[] encoded_msg = dis.readUTF().getBytes();
                 String json_msg = new String(Base64.getDecoder().decode(encoded_msg));
 
-                Gson g = new Gson();
-                Map<String, Object> map_msg =
-                    g.fromJson(json_msg, new TypeToken<Map<String, Object>>() {}.getType());
+                Response response = gson.fromJson(json_msg, Response.class);
 
-                double status_code = (double) map_msg.get("status");
-                if (status_code == 0)
+                if (response.getStatus() == 0)
                     break;
-                msg = (String) map_msg.get("msg");
-                System.out.println(msg);
+
+                System.out.println("----------");
+                System.out.println(response.getMsg());
+
+                List<String> result = response.getResult();
+                if (result == null)
+                    System.out.println(response.success());
+                else
+                    for (String s : result) System.out.println(s);
+                System.out.println("----------");
             }
 
             // closing resources
@@ -90,21 +96,18 @@ public class ChatClient {
             if (param != null) {
                 String username = param[0];
                 String password = param[1];
-                tosend = "{'task':'" + task + "','param':['username':'" + username
-                    + "','password':'" + password + "']}";
-                tosend = tosend.replace("'", "\"");
+
+                tosend = gson.toJson(new Request(
+                    "signin", Arrays.asList(username, password, "198.168.0.1", "7778")));
             }
         } else if (task.equals("signup")) {
             String param = signup();
             if (param != null) {
                 String username = param;
-                tosend = "{'task':'" + task + "','param':{'username':'" + username
-                    + "'}}";
-                tosend = tosend.replace("'", "\"");
+                tosend = gson.toJson(new Request("signup", Arrays.asList(username)));
             }
-        }
-         else {
-            tosend = "{\"task\":\"exit\",\"param\":{}}";
+        } else {
+            tosend = gson.toJson(new Request("exit"));
         }
 
         byte[] encoded_msg = Base64.getEncoder().encode(tosend.getBytes());
