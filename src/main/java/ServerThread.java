@@ -2,6 +2,7 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+import org.apache.commons.lang.StringUtils;
 // json provider
 import org.json.*;
 import com.google.gson.*;
@@ -15,11 +16,11 @@ public class ServerThread extends Thread {
     final private DatabaseProvider dp;
 
     boolean isLoggedIn = false;
-    String username;
+    String Username;
     String IP;
 
-    QueryType qt = null;
-    Map<String, Object> param = null;
+    QueryType qt = QueryType.UNKNOWN;
+    List<String> param = null;
 
     public ServerThread(
         Socket socket, DataInputStream dis, DataOutputStream dos, DatabaseProvider dp) {
@@ -50,7 +51,7 @@ public class ServerThread extends Thread {
     }
 
     protected void receive_msg() {
-        String json_msg;
+        String json_msg = "";
         try {
             byte[] encoded_msg = dis.readUTF().getBytes();
             json_msg = new String(Base64.getDecoder().decode(encoded_msg));
@@ -64,12 +65,11 @@ public class ServerThread extends Thread {
             // using gson?
             // System.out.println(json_msg);
             Gson g = new Gson();
-            Map<String, Object> map_msg;
-
-            map_msg =
-                g.fromJson(json_msg, new TypeToken<Map<String, Object>>() {}.getType());
+            Request req = g.fromJson(json_msg, Request.class );
+            //req.print();
+            System.out.print(req);
             
-            String task = (String) map_msg.get("task");
+            String task = req.getTask();
             if (task.equals("signin"))
                 qt = QueryType.SIGNIN;
             else if (task.equals("signout"))
@@ -78,15 +78,17 @@ public class ServerThread extends Thread {
                 qt = QueryType.SIGNUP;
             else if (task.equals("chooseroom"))
                 qt = QueryType.CHOOSEROOM;
+            else if (task.equals("getip"))
+                qt = QueryType.GETIP;
             else if (task.equals("exit"))
                 qt = QueryType.EXIT;
             else
                 qt = QueryType.UNKNOWN;
 
             // param is {} so it is ok to work like this
-            @SuppressWarnings("unchecked")
-            Map<String, Object> p = (Map<String, Object>) map_msg.get("param");
-            param = p;
+           // @SuppressWarnings("unchecked")
+            param = req.getParam();
+
 
         } catch (IOException ex) {
             // pass
@@ -103,28 +105,56 @@ public class ServerThread extends Thread {
         String msg = "Unknown request";
         String username = "";
         String password = "";
+        String ip = "";
+        String port = "";
+        String[] IPPort = null;
         switch (qt) {
             case SIGNIN:
-                username = (String) param.get("username");
-                password = (String) param.get("password");
+                username = param.get(0);
+                password = param.get(1);
                 isLoggedIn = signin(username, password);
                 if (isLoggedIn) {
-                    status_code = 200;
-                    msg = "Logged in successfully";
+                    ip = param.get(2);
+                    port = param.get(3);
+                    if(makeOnline(username, ip, port)){
+                        status_code = 200;
+                        msg = "Logged in successfully";
+                        this.Username = username;
+                        this.IP = ip;
+                    }
+                    else{
+                        status_code = 433; 
+                        msg = "IP port Error!";
+                    }
+
                 } else {
                     status_code = 403;
                     msg = "Wrong credentials";
                 }
                 break;
             case SIGNUP:
-                username = (String) param.get("username");
+                username = param.get(0);
                 signup(username);
                 status_code = 200;
                 msg = "Signup successfully";
                 break;
+            case GETIP:
+                username = param.get(0);
+                IPPort = getIP(username);
+                if(IPPort == null) {
+                    status_code = 444;
+                    msg = "User not online";           
+                }
+                else{
+                    ip = IPPort[0];
+                    port = IPPort[1];
+                    status_code = 200;
+                    msg = ip + ":" + port;   
+                }
             case EXIT:
                 status_code = 0;
                 msg = "EXIT";
+                dp.setOffline(this.Username);
                 break;
 
             default:
@@ -169,6 +199,26 @@ public class ServerThread extends Thread {
         }
     }
 
+    protected boolean makeOnline(String name, String IP, String port){
+        
+        if(!StringUtils.isNumeric(port)){
+
+            return false;
+        }  
+        else{
+            dp.setOnline(name, IP, port);
+            return true;
+        }      
+    }
+
+    protected String[] getIP(String name){
+        String result = dp.getIP(name);
+        if(result == null) return null;
+        else{
+            return result.split(":");
+        } 
+    }
+
     // list of IP Address
     protected List<String> chooseroom(int room) {
         return null;
@@ -185,4 +235,4 @@ public class ServerThread extends Thread {
     }
 }
 
-enum QueryType { SIGNIN, SIGNUP, SIGNOUT, CHOOSEROOM, EXIT, UNKNOWN }
+enum QueryType { SIGNIN, SIGNUP, SIGNOUT, CHOOSEROOM, GETIP, EXIT, UNKNOWN }

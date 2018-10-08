@@ -90,8 +90,8 @@ public class ChatClient {
             if (param != null) {
                 String username = param[0];
                 String password = param[1];
-                tosend = "{'task':'" + task + "','param':{'username':'" + username
-                    + "','password':'" + password + "'}}";
+                tosend = "{'task':'" + task + "','param':['username':'" + username
+                    + "','password':'" + password + "']}";
                 tosend = tosend.replace("'", "\"");
             }
         } else if (task.equals("signup")) {

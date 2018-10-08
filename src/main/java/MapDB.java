@@ -5,11 +5,14 @@ import java.lang.*;
 
 public class MapDB extends DatabaseProvider {
     private DB db;
+    private DB dbM;
     private HTreeMap<String, byte[]> accounts;
+    private HTreeMap<String, String> online;    
 
     public boolean connect() throws Exception {
         try {
             db = DBMaker.fileDB("database.db").make();
+            dbM = DBMaker.memoryDB().make();
 
             // store Account as class --> serialize to bytes
             // ID --> Class (must find by id)
@@ -19,6 +22,14 @@ public class MapDB extends DatabaseProvider {
                            .valueSerializer(Serializer.BYTE_ARRAY)
                            .counterEnable()
                            .createOrOpen();
+
+            // name -> 127.0.0.1:1234
+            // name -> IP:port
+            online = dbM.hashMap("online")
+                        .keySerializer(Serializer.STRING)
+                        .valueSerializer(Serializer.STRING)
+                        .counterEnable()
+                        .create();
 
         } catch (Exception ex) {
             throw ex;
@@ -57,5 +68,18 @@ public class MapDB extends DatabaseProvider {
     public boolean existUser(String username) {
         // System.out.println(accounts.get(username));
         return accounts.get(username) != null;
+    }
+
+    public String getIP(String username){
+        return online.get(username);
+    }
+
+    public void setOnline(String username, String IP, String port){
+        String str = IP + ":" + port;
+        online.put(username, str);
+    }
+
+    public void setOffline(String username){
+        online.remove(username);
     }
 }
