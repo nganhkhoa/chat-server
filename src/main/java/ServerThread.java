@@ -170,13 +170,12 @@ public class ServerThread extends Thread {
                 /*
                 /* returns 'password'
                  */
-                if (param.size() != 1) {
+                if (param.size() != 1)
                     return new Response(201, "method param not found");
-                }
+
                 username = param.get(0);
                 password = signup(username);
-
-                if(password == null)
+                if (password == null)
                     return new Response(202, "username existed");
 
                 return new Response(200, "Signup successfully", Arrays.asList(password));
@@ -199,13 +198,13 @@ public class ServerThread extends Thread {
                 /* returns ['ip','port']
                  */
                 username = param.get(0);
-                if(username.equals(Username)){
+                if (username.equals(Username))
                     return new Response(303, "Can not query yourself");
-                }
+
                 IPPort = getIP(username);
-                if (IPPort == null) {
+                if (IPPort == null)
                     return new Response(302, "User not online");
-                }
+
                 ip = IPPort[0];
                 port = IPPort[1];
                 return new Response(200, "Query user successfully", Arrays.asList(ip, port));

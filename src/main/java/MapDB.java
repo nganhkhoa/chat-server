@@ -7,7 +7,7 @@ public class MapDB extends DatabaseProvider {
     private DB db;
     private DB dbM;
     private HTreeMap<String, byte[]> accounts;
-    private HTreeMap<String, String> online;    
+    private HTreeMap<String, String> online;
 
     public boolean connect() throws Exception {
         try {
@@ -26,10 +26,10 @@ public class MapDB extends DatabaseProvider {
             // name -> 127.0.0.1:1234
             // name -> IP:port
             online = dbM.hashMap("online")
-                        .keySerializer(Serializer.STRING)
-                        .valueSerializer(Serializer.STRING)
-                        .counterEnable()
-                        .create();
+                         .keySerializer(Serializer.STRING)
+                         .valueSerializer(Serializer.STRING)
+                         .counterEnable()
+                         .create();
 
         } catch (Exception ex) {
             throw ex;
@@ -70,16 +70,16 @@ public class MapDB extends DatabaseProvider {
         return accounts.get(username) != null;
     }
 
-    public String getIP(String username){
+    public String getIP(String username) {
         return online.get(username);
     }
 
-    public void setOnline(String username, String IP, String port){
+    public void setOnline(String username, String IP, String port) {
         String str = IP + ":" + port;
         online.put(username, str);
     }
 
-    public void setOffline(String username){
+    public void setOffline(String username) {
         online.remove(username);
     }
 }
