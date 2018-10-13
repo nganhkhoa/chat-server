@@ -5,5 +5,11 @@ public abstract class DatabaseProvider {
     protected abstract Object getRoomDatabase();
 
     public abstract boolean signIn(String name, String password);
-    public abstract String signUp(String name);
+    public abstract void addUser(Account account);
+
+    public abstract boolean existUser(String name);
+
+    public abstract String getIP(String name);
+    public abstract void setOnline(String name, String IP, String port);
+    public abstract void setOffline(String name);
 }

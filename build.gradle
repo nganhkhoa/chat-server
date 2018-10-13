@@ -12,21 +12,23 @@ plugins {
 
     // Apply the application plugin to add support for building an application
     id 'application'
+
+    // fat Jar build
+    id 'com.github.johnrengelman.shadow' version '4.0.1'
 }
 
 // Define the main class for the application
-mainClassName = 'App'
+mainClassName = 'ChatServer'
 
 dependencies {
     // This dependency is found on compile classpath of this component and consumers.
     compile 'com.google.guava:guava:23.0'
-
-    // jsonDB
-    compile "io.jsondb:jsondb-core:1.0.36"
     // mapdb
     compile "org.mapdb:mapdb:3.0.7"
     // serializer
     compile "commons-lang:commons-lang:2.6"
+
+    compile 'com.google.code.gson:gson:2.8.5'
 
     // Use JUnit test framework
     testCompile 'junit:junit:4.12'
@@ -37,4 +39,16 @@ repositories {
     // Use jcenter for resolving your dependencies.
     // You can declare any Maven/Ivy/file repository here.
     jcenter()
+}
+
+jar {
+    manifest {
+        attributes 'Main-class': 'ChatServer'
+    }
+}
+
+shadowJar {
+    baseName = 'ChatServer'
+    classifier = null
+    version = null
 }
